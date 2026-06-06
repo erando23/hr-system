@@ -1717,9 +1717,42 @@ function MgrAbsensi({ currentUser, employees, attendance, setAttendance, outlets
     setTimeout(() => setOverrideMsg(null), 5000);
   };
 
+  const runAutoFill = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/attendance/auto-fill", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ month: mp }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setOverrideMsg({ ok: true, text: `Auto-fill selesai: ${json.data.filled} record baru (dari ${json.data.scanned} jadwal yang dicek)` });
+        // Refresh attendance for current month
+        const attRes = await fetch("/api/attendance");
+        const attJson = await attRes.json();
+        if (attJson.success) {
+          const list = attJson.data.filter(a => a.date.startsWith(mp));
+          setAttendance(list.map(a => ({ ...a, empId: a.userId })));
+        }
+      } else {
+        setOverrideMsg({ ok: false, text: "Gagal: " + json.error });
+      }
+    } catch (e) {
+      setOverrideMsg({ ok: false, text: "Error: " + e.message });
+    }
+    setSaving(false);
+    setTimeout(() => setOverrideMsg(null), 5000);
+  };
+
   return (
     <div>
-      <PageTitle sub="Koreksi/override absensi karyawan — status & efek payroll otomatis" action={selEmp && <SBtn onClick={openModal}>+ Override Absensi</SBtn>}>Override Absensi</PageTitle>
+      <PageTitle sub="Koreksi/override absensi karyawan — status & efek payroll otomatis" action={
+        <div style={{ display: "flex", gap: 8 }}>
+          <SBtn variant="secondary" onClick={runAutoFill} disabled={saving}>{saving ? "..." : "⟳ Auto-Fill"}</SBtn>
+          {selEmp && <SBtn onClick={openModal}>+ Override Absensi</SBtn>}
+        </div>
+      }>Override Absensi</PageTitle>
 
       {overrideMsg && (
         <div style={{ background: overrideMsg.ok ? T.emD : T.redD, border: `1px solid ${overrideMsg.ok ? T.em : T.red}44`, borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 13, color: overrideMsg.ok ? T.em : T.red, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
