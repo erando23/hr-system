@@ -1610,19 +1610,33 @@ function MgrAbsensi({ currentUser, employees, attendance, setAttendance, outlets
   const selEmpData = selEmp ? myEmps.find(e => e.id === selEmp) : null;
 
   // ── Monthly stats for selected employee ──
+  // Match the server's calculatePayroll() in src/lib/utils.js so the summary
+  // cards here line up with the Payroll page.
   const stats = selAtts.reduce((acc, a) => {
     const s = a.status;
-    if (s === "hadir") {
-      if (a.lateMins > 15 && !a.lateWithPermission) acc.terlambat++;
-      else if (a.lateWithPermission) acc.hadirIzin++;
-      else acc.hadir++;
+    if (s === "hadir" || s === "terlambat") {
+      acc.hadir++;
+      if ((a.lateMins > 15 && !a.lateWithPermission) || s === "terlambat" || a.keterangan === "terlambat") {
+        acc.terlambat++;
+      } else if (a.lateWithPermission) {
+        acc.hadirIzin++;
+      }
     } else if (s === "libur") acc.libur++;
     else if (s === "izin") acc.izin++;
     else if (s === "alpa") acc.alpa++;
     return acc;
   }, { hadir: 0, hadirIzin: 0, terlambat: 0, libur: 0, izin: 0, alpa: 0 });
 
-  const totalHadirBayar = stats.hadir + stats.hadirIzin;
+  // Count overtime occurrences (per-kejadian), not per-day — matches
+  // calculatePayroll's totalOvertimeCount. The previous version counted days
+  // with overtimeMins > 0, which undercounted when an employee worked multiple
+  // overtime shifts in one day or got 0 in payroll's per-occurrence count.
+  const totalOTKali = selAtts.reduce((s, a) => s + (a.overtimeCount || 0), 0);
+
+  // Days paid: totalHadir + min(latePermission, 2) - latePermissionOverLimit
+  // (mirrors calculatePayroll's totalDaysPaid → gajiPokok prorate)
+  const latePermOverLimit = selAtts.filter((a) => a.overrideType === "terlambat_izin" && a.keterangan === "terlambat").length;
+  const totalHadirBayar = stats.hadir + Math.min(latePermCount, 2) - latePermOverLimit;
 
   // ── Step 1: pick type → step 2: fill form → step 3: confirm ──
   const openModal = () => {
@@ -1733,13 +1747,14 @@ function MgrAbsensi({ currentUser, employees, attendance, setAttendance, outlets
             </div>
           </Card>
 
-          {/* Stat cards */}
+          {/* Stat cards — match calculatePayroll() in src/lib/utils.js */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, marginBottom: 16 }}>
             {[
+              { label: "Total Bayar", value: totalHadirBayar, color: T.em, bg: T.emD, sub: "hari kerja dibayar" },
               { label: "Hadir", value: stats.hadir, color: T.em, bg: T.emD },
               { label: "Hadir + Izin", value: stats.hadirIzin, color: T.blue, bg: T.blueD, sub: "tlmbr dgn izin" },
               { label: "Terlambat", value: stats.terlambat, color: T.amber, bg: T.amberD, sub: "kena potong" },
-              { label: "Lembur", value: selAtts.filter(a => (a.overtimeMins || 0) > 0).length, color: T.purple, bg: T.purpleD },
+              { label: "Lembur", value: totalOTKali, color: T.purple, bg: T.purpleD, sub: "× kejadian" },
               { label: "Izin", value: stats.izin, color: T.blue, bg: T.blueD },
               { label: "Alpa", value: stats.alpa, color: T.red, bg: T.redD },
               { label: "Libur", value: stats.libur, color: T.t2, bg: T.bg3 },
