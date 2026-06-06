@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Next.js build output
+.next/
+out/
+build/
+
+# Database files (jangan commit database asli!)
+*.db
+*.db-shm
+*.db-wal
+drizzle/
+
+# Environment variables (RAHASIA — jangan di-commit!)
+.env
+.env.local
+.env.production
+.env.production.local
+.env*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor
+.vscode/
+.idea/
+
+# Vercel metadata (project.json mengandung project ID org)
+.vercel
+
+# Claude / agent tooling
+.claude/
+.agent/
+CLAUDE.md
+
+# Claude / agent tooling
+.claude/
+.agent/
+
+# Local debug & helper scripts
+dev.log
+login_error.txt
+check-db.js
+migrate_db.js
+test_login.js
+update_pins.js
+verify.js
+
+# Misc
+*.pdf
