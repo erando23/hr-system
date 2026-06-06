@@ -1441,9 +1441,9 @@ function MgrJadwal({ currentUser, employees, schedule, setSchedule, outlets }) {
                             {isOpen && (
                               <div onClick={e => e.stopPropagation()} style={{ position: "absolute", top: "calc(100% + 2px)", left: "50%", transform: "translateX(-50%)", zIndex: 500, background: T.bg3, border: `1px solid ${T.lineL}`, borderRadius: 8, padding: 6, boxShadow: "0 8px 24px #00000088", minWidth: 160 }}>
                                 <div style={{ fontSize: 9, color: T.t2, marginBottom: 4, letterSpacing: 1 }}>GANTI</div>
-                                {Object.entries(SHIFTS_DEF).map(([k, v]) => (
+                                {Object.entries(outletShiftDef).map(([k, v]) => (
                                   <button key={k} onClick={() => setShift(emp.id, dayNum, k)} style={{ display: "block", width: "100%", padding: "5px 8px", background: sk === k ? v.bg : "transparent", color: v.color, border: "none", borderRadius: 5, cursor: "pointer", fontFamily: T.fM, fontWeight: 700, fontSize: 10, textAlign: "left", marginBottom: 2 }}>
-                                    [{k}] {v.label}
+                                    [{k}] {v.label}{v.start ? ` · ${v.start}–${v.end}` : ""}
                                   </button>
                                 ))}
                               </div>
@@ -1473,24 +1473,31 @@ function MgrJadwal({ currentUser, employees, schedule, setSchedule, outlets }) {
               <div style={{ fontSize: 11, color: T.t1, marginBottom: 12, padding: "8px 10px", background: T.bg3, borderRadius: 6, border: `1px solid ${T.line}` }}>
                 📍 <b style={{ color: T.t0 }}>{displayEmps.length} karyawan</b> di outlet ini akan dijadwalkan
               </div>
-              {outlets.find(o => o.id === filterOutlet)?.isSingleShift ? (
+              {(() => {
+                const o = outlets.find(x => x.id === filterOutlet);
+                const shiftDef = getShiftDef(o);
+                const isSingle = o?.isSingleShift;
+                return (
+                isSingle ? (
                 // SINGLE-SHIFT INFO
                 <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: T.t1, lineHeight: 2.2 }}>
-                  <li><b style={{ color: T.em }}>FULL Time</b> — kerja penuh hari (tidak ada shift pagi/siang)</li>
-                  <li><b style={{ color: T.red }}>Libur Bersama</b> — <b>SEMUA</b> karyawan off di hari: <b>{["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"][outlets.find(o => o.id === filterOutlet)?.offDay ?? 0]}</b> (sesuai data Outlet)</li>
+                  <li><b style={{ color: T.em }}>FULL Time</b> — kerja penuh hari ({shiftDef.FULL.start}–{shiftDef.FULL.end})</li>
+                  <li><b style={{ color: T.red }}>Libur Bersama</b> — <b>SEMUA</b> karyawan off di hari: <b>{["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"][o?.offDay ?? 0]}</b> (sesuai data Outlet)</li>
                   <li>Libur &amp; Shift tunggal <b style={{ color: T.t0 }}>BERLAKU UNTUK SEMUA KARYAWAN</b> (tidak individual)</li>
                   <li>Ganti hari libur? Edit Outlet → atur <b>"Hari Libur Default Outlet"</b> lalu generate ulang</li>
                 </ul>
-              ) : (
+                ) : (
                 // 2-SHIFT INFO
                 <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: T.t1, lineHeight: 2.2 }}>
-                  <li><b style={{ color: T.em }}>Shift Pagi (P)</b> — pagi (07:00–14:00) &nbsp;·&nbsp; <b style={{ color: T.amber }}>Shift Siang (S)</b> — siang (14:00–21:00)</li>
+                  <li><b style={{ color: T.em }}>Shift Pagi (P)</b> — pagi ({shiftDef.P.start}–{shiftDef.P.end}) &nbsp;·&nbsp; <b style={{ color: T.amber }}>Shift Siang (S)</b> — siang ({shiftDef.S.start}–{shiftDef.S.end})</li>
                   <li><b style={{ color: T.purple }}>Rotation Sederhana</b> — setiap karyawan mendapat L, FULL, P, S dalam 1 minggu</li>
                   <li>Senin–Kamis: rotasi L/FULL/P/S bergilir tiap hari</li>
                   <li>Jumat–Minggu: P/S saja, swap per minggu</li>
                   <li>Minimal <b style={{ color: T.t0 }}>2 karyawan per departemen</b></li>
                 </ul>
-              )}
+                )
+                );
+              })}
               <div style={{ fontSize: 11, color: T.t2, marginTop: 8, borderTop: `1px solid ${T.amber}33`, paddingTop: 8 }}>
                 ⚠️ Setelah generate, jadwal akan <b>TERKUNCI OTOMATIS</b>. Klik "🔓 Buka Kunci" untuk edit manual.
               </div>
