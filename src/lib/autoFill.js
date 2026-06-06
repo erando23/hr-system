@@ -26,17 +26,34 @@ function getShiftTimes(shiftKey, outlet) {
 }
 
 // Returns true when a shift has already ended in real-world time.
+// Server-side time is interpreted in APP_TZ (Asia/Jakarta by default) so the
+// Vercel UTC clock doesn't make late-evening shifts look unended.
+const APP_TZ = process.env.APP_TZ || "Asia/Jakarta";
+
+function nowInAppTz() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TZ,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(new Date());
+  const get = (t) => parts.find((p) => p.type === t)?.value;
+  return {
+    dateStr: `${get("year")}-${get("month")}-${get("day")}`,
+    hours: parseInt(get("hour"), 10) % 24, // Intl can return "24" at midnight in some locales
+    minutes: parseInt(get("minute"), 10),
+  };
+}
+
 function hasShiftEnded(shiftEnd, dateStr) {
   if (!shiftEnd) return false;
-  const now = new Date();
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const { dateStr: today, hours, minutes } = nowInAppTz();
   if (dateStr < today) return true; // past date — always ended
   if (dateStr > today) return false; // future date — never ended
   // same day — compare HH:MM
   const [h, m] = String(shiftEnd).split(":").map(Number);
   if (Number.isNaN(h)) return true;
   const endMin = h * 60 + (m || 0);
-  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const nowMin = hours * 60 + minutes;
   return nowMin >= endMin;
 }
 
@@ -101,10 +118,7 @@ export async function autoFillAttendance(month) {
 
   const rowsToInsert = [];
   const nowIso = new Date().toISOString();
-  const todayStr = (() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  })();
+  const todayStr = nowInAppTz().dateStr;
 
   const userOutletById = {};
   for (const u of allUsers) userOutletById[u.id] = outletById[u.outletId];
