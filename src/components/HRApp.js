@@ -1728,11 +1728,11 @@ function MgrAbsensi({ currentUser, employees, attendance, setAttendance, outlets
       const json = await res.json();
       if (json.success) {
         setOverrideMsg({ ok: true, text: `Auto-fill selesai: ${json.data.filled} record baru (dari ${json.data.scanned} jadwal yang dicek)` });
-        // Refresh attendance for current month
-        const attRes = await fetch("/api/attendance");
+        // Refresh attendance for current month (all employees)
+        const attRes = await fetch(`/api/attendance?month=${mp}`);
         const attJson = await attRes.json();
         if (attJson.success) {
-          const list = attJson.data.filter(a => a.date.startsWith(mp));
+          const list = attJson.data;
           setAttendance(list.map(a => ({ ...a, empId: a.userId })));
         }
       } else {

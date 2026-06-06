@@ -19,14 +19,17 @@ export async function GET(request) {
       return err("Tidak diizinkan", 403);
     }
 
-    let query = db.select().from(attendances).where(eq(attendances.userId, userId));
-    const rows = await query;
+    let query, rows;
+    // When userId is not specified but month is, return all employees' attendance for that month
+    if (month && !searchParams.has("userId")) {
+      query = db.select().from(attendances).where(like(attendances.date, `${month}%`));
+      rows = await query;
+    } else {
+      query = db.select().from(attendances).where(eq(attendances.userId, userId));
+      rows = await query;
+    }
 
-    const filtered = month
-      ? rows.filter(r => r.date.startsWith(month))
-      : rows;
-
-    return ok(filtered.sort((a, b) => b.date.localeCompare(a.date)));
+    return ok(rows.sort((a, b) => b.date.localeCompare(a.date)));
   } catch (e) {
     if (e.message === "UNAUTHORIZED") return err("Belum login", 401);
     return err("Server error: " + e.message, 500);
