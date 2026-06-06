@@ -1750,14 +1750,11 @@ function MgrAbsensi({ currentUser, employees, attendance, setAttendance, outlets
           {/* Stat cards — match calculatePayroll() in src/lib/utils.js */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, marginBottom: 16 }}>
             {[
-              { label: "Total Bayar", value: totalHadirBayar, color: T.em, bg: T.emD, sub: "hari kerja dibayar" },
               { label: "Hadir", value: stats.hadir, color: T.em, bg: T.emD },
-              { label: "Hadir + Izin", value: stats.hadirIzin, color: T.blue, bg: T.blueD, sub: "tlmbr dgn izin" },
               { label: "Terlambat", value: stats.terlambat, color: T.amber, bg: T.amberD, sub: "kena potong" },
               { label: "Lembur", value: totalOTKali, color: T.purple, bg: T.purpleD, sub: "× kejadian" },
               { label: "Izin", value: stats.izin, color: T.blue, bg: T.blueD },
               { label: "Alpa", value: stats.alpa, color: T.red, bg: T.redD },
-              { label: "Libur", value: stats.libur, color: T.t2, bg: T.bg3 },
             ].map(s => (
               <div key={s.label} style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 10, padding: "12px 14px" }}>
                 <div style={{ fontSize: 10, fontFamily: T.fM, letterSpacing: 1.2, color: T.t2, marginBottom: 4 }}>{s.label.toUpperCase()}</div>
