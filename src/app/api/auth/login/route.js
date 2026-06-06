@@ -74,8 +74,12 @@ export async function POST(request) {
 
     // Ambil semua attendances bulan ini (untuk semua karyawan)
     // Auto-fill missing past rows so payroll sees complete data
-    try { await autoFillAttendance(monthKey); } catch (e) { console.error("autoFillAttendance error:", e); }
-    const allAttendances = await db.select().from(attendances);
+    let autoFillError = null;
+    try { await autoFillAttendance(monthKey); }
+    catch (e) { autoFillError = e?.message || String(e); console.error("autoFillAttendance error:", e); }
+    let allAttendances = [];
+    try { allAttendances = await db.select().from(attendances); }
+    catch (e) { console.error("attendances select error:", e); allAttendances = []; }
 
     // Simpan session
     const session = await getSession();
@@ -107,9 +111,10 @@ export async function POST(request) {
       kasbon: allKasbon,
       attendances: allAttendances,
       monthKey,
+      ...(autoFillError ? { _autoFillError: autoFillError } : {}),
     });
   } catch (error) {
-    console.error("Login error:", error);
-    return err("Server error", 500);
+    console.error("Login error:", error?.message, error?.stack, error?.cause);
+    return err("Server error: " + (error?.message || "unknown"), 500);
   }
 }

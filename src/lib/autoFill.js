@@ -81,6 +81,24 @@ export async function autoFillAttendance(month) {
     .where(and(gte(attendances.date, firstOfMonth), lte(attendances.date, lastDateStr)));
   const haveRow = new Set(existing.map((r) => `${r.userId}|${r.date}`));
 
+  // Build the row shape that matches the seed (src/scripts/seed.js). We deliberately
+  // omit overrideType/keterangan/overtimeCount/lateWithPermission/earlyLeaveCount
+  // so the insert works against older Turso DBs that predate those ALTER TABLE
+  // migrations — Drizzle won't try to send columns you don't set.
+  const baseRow = {
+    checkIn: null,
+    checkOut: null,
+    checkInLat: null,
+    checkInLng: null,
+    checkOutLat: null,
+    checkOutLng: null,
+    lateMins: 0,
+    earlyMins: 0,
+    overtimeMins: 0,
+    note: "",
+    overrideBy: null,
+  };
+
   const rowsToInsert = [];
   const nowIso = new Date().toISOString();
   const todayStr = (() => {
@@ -105,26 +123,14 @@ export async function autoFillAttendance(month) {
     if (sched.shiftKey === "L") {
       // Off-day — backfill as "hadir" (treated as paid off-day by payroll)
       rowsToInsert.push({
+        ...baseRow,
         userId: sched.userId,
         date: dateStr,
         dayIdx: sched.dayIdx,
         weekIdx: sched.weekIdx,
         shiftKey: "L",
         status: "hadir",
-        checkIn: null,
-        checkOut: null,
-        checkInLat: null,
-        checkInLng: null,
-        checkOutLat: null,
-        checkOutLng: null,
-        lateMins: 0,
-        earlyMins: 0,
-        overtimeMins: 0,
-        overtimeCount: 0,
-        lateWithPermission: false,
-        earlyLeaveCount: 0,
         note: "auto: libur terjadwal",
-        overrideBy: null,
         createdAt: nowIso,
       });
       continue;
@@ -134,26 +140,14 @@ export async function autoFillAttendance(month) {
     if (!hasShiftEnded(times.end, dateStr)) continue;
 
     rowsToInsert.push({
+      ...baseRow,
       userId: sched.userId,
       date: dateStr,
       dayIdx: sched.dayIdx,
       weekIdx: sched.weekIdx,
       shiftKey: sched.shiftKey,
       status: "alpa",
-      checkIn: null,
-      checkOut: null,
-      checkInLat: null,
-      checkInLng: null,
-      checkOutLat: null,
-      checkOutLng: null,
-      lateMins: 0,
-      earlyMins: 0,
-      overtimeMins: 0,
-      overtimeCount: 0,
-      lateWithPermission: false,
-      earlyLeaveCount: 0,
       note: "auto: alpa (tidak absen)",
-      overrideBy: null,
       createdAt: nowIso,
     });
   }
